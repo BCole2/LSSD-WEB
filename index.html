@@ -2,34 +2,18 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>LSSD | Los Santos County Sheriff's Department</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background-image: radial-gradient(circle, #1a365d 0%, #0a192f 100%); }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSSD Přihlášení</title>
 </head>
-<body class="h-screen flex items-center justify-center font-sans text-white">
-    <div class="w-full max-w-md p-8 bg-slate-900/80 border border-slate-700 rounded-xl shadow-2xl text-center">
-        <div class="mb-8">
-            <h1 class="text-4xl font-black tracking-tighter italic">LSSD</h1>
-            <p class="text-[10px] uppercase tracking-[0.3em] text-yellow-500">Internal Data Access</p>
-        </div>
-        
-        <div class="space-y-4">
-            <p class="text-sm opacity-60 mb-6">Pro přístup k terminálu se přihlaste pomocí autorizovaného účtu.</p>
-            
-            <a href="dashboard.html" class="flex items-center justify-center space-x-3 w-full py-3 bg-white text-black font-bold rounded-lg hover:bg-gray-200 transition">
-                <span>Přihlásit se přes Google</span>
-            </a>
-            
-            <a href="dashboard.html" class="flex items-center justify-center space-x-3 w-full py-3 bg-[#5865F2] text-white font-bold rounded-lg hover:bg-[#4752C4] transition">
-                <span>Přihlásit se přes Discord</span>
-            </a>
-        </div>
-
-        <div class="mt-8 pt-6 border-t border-slate-800 text-[10px] opacity-40">
-            WARNING: AUTHORIZED ACCESS ONLY. ALL ACTIVITIES ARE LOGGED.
-        </div>
+<body>
+    <h1>Vítejte v LSSD portálu</h1>
+    
+    <div>
+        <a href="/auth/discord">Přihlásit přes Discord</a>
+    </div>
+    <br>
+    <div>
+        <a href="/auth/google">Přihlásit přes Google</a>
     </div>
 </body>
 </html>
