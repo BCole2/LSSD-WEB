@@ -19,7 +19,7 @@ const UserSchema = new mongoose.Schema({
 const User = mongoose.model('User', UserSchema);
 
 // SEM VLOŽÍŠ TO ID, KTERÉ UVIDÍŠ V LOGU NA RENDEROVI
-const ADMIN_IDS = ["TVOJE_ID_Z_LOGU"];
+const ADMIN_IDS = ["781859398183944192"];
 
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
