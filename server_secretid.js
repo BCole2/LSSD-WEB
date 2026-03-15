@@ -6,30 +6,37 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const path = require('path');
 const app = express();
 
-// 1. DŮLEŽITÉ pro Render (aby poznal HTTPS za proxy)
+// 1. Nastavení pro Render proxy
 app.set('trust proxy', 1);
 
-// 2. Nastavení session pro produkci
+// 2. Nastavení session
 app.use(session({
     secret: process.env.SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
-    proxy: true, // Nutné pro Render
+    proxy: true,
     cookie: {
-        secure: true,    // Musí být true pro HTTPS
+        secure: true,
         httpOnly: true,
-        sameSite: 'none' // 'none' je nutné pro OAuth přesměrování
+        sameSite: 'none'
     }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Serializace uživatele
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
+// 3. Serializace (s ladicím výpisem)
+passport.serializeUser((user, done) => {
+    console.log("LOG: Serializuji uživatele (ukládám do session):", user.id);
+    done(null, user);
+});
 
-// Discord Strategie
+passport.deserializeUser((obj, done) => {
+    console.log("LOG: Deserializuji uživatele (čtu ze session):", obj.id);
+    done(null, obj);
+});
+
+// Strategie
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
@@ -37,19 +44,15 @@ passport.use(new DiscordStrategy({
     scope: ['identify', 'email']
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
-// Google Strategie
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
-// Ladící Middleware (vypíše do logu, zda jsi přihlášen)
+// 4. Ladicí middleware
 app.use((req, res, next) => {
-    console.log(`URL: ${req.url} | Přihlášen: ${req.isAuthenticated()}`);
-    if (req.isAuthenticated()) {
-        console.log("Uživatel v session:", req.user ? req.user.id : "Neznámý");
-    }
+    console.log(`URL: ${req.url} | SessionID: ${req.sessionID} | isAuthenticated: ${req.isAuthenticated()}`);
     next();
 });
 
@@ -57,15 +60,26 @@ app.use((req, res, next) => {
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard.html'));
+app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
+    req.session.save(() => {
+        console.log("LOG: Discord session uložena, přesměrovávám na dashboard.");
+        res.redirect('/dashboard.html');
+    });
+});
 
 app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard.html'));
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
+    req.session.save(() => {
+        console.log("LOG: Google session uložena, přesměrovávám na dashboard.");
+        res.redirect('/dashboard.html');
+    });
+});
 
 app.get('/dashboard.html', (req, res) => {
     if (req.isAuthenticated()) {
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } else {
+        console.log("LOG: Přístup zamítnut, uživatel není přihlášen.");
         res.redirect('/');
     }
 });
