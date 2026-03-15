@@ -6,42 +6,35 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const path = require('path');
 const app = express();
 
-// 1. Kritické nastavení pro Render (aby server věřil, že je za proxy a používá HTTPS)
-app.enable('trust proxy');
+// 1. Nastavení pro proxy (Render běží za proxy)
+app.set('trust proxy', 1);
 
 // 2. Nastavení session
 app.use(session({
-    secret: process.env.SESSION_SECRET,
+    secret: process.env.SESSION_SECRET || 'super-tajne-heslo-pro-test',
     resave: false,
     saveUninitialized: false,
     name: 'lssd_session',
-    proxy: true, // Povolí předávání informací o HTTPS z proxy
     cookie: {
-        secure: false,    // VYŽADUJE HTTPS (Render poskytuje HTTPS automaticky)
-        httpOnly: true,  // Ochrana proti XSS
-        sameSite: 'lax', // Standard pro přihlášení mezi doménami
-        maxAge: 24 * 60 * 60 * 1000 // 24 hodin
+        secure: true,      // Na Renderu musí být true (HTTPS)
+        httpOnly: true,
+        sameSite: 'lax',
+        maxAge: 24 * 60 * 60 * 1000
     }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 3. Serializace uživatele
-passport.serializeUser((user, done) => {
-    done(null, user);
-});
+// 3. Serializace
+passport.serializeUser((user, done) => done(null, user));
+passport.deserializeUser((obj, done) => done(null, obj));
 
-passport.deserializeUser((obj, done) => {
-    done(null, obj);
-});
-
-// Strategie (Discord a Google)
+// Strategie (zjednodušeno)
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: "/auth/discord/callback",
-    scope: ['identify', 'email']
+    callbackURL: "/auth/discord/callback"
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
 passport.use(new GoogleStrategy({
@@ -50,7 +43,7 @@ passport.use(new GoogleStrategy({
     callbackURL: "/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
-// 4. Debugovací middleware (vypisuje stav do logů Renderu)
+// 4. Debugovací middleware - Sledujeme SessionID
 app.use((req, res, next) => {
     console.log(`[DEBUG] URL: ${req.url} | SessionID: ${req.sessionID} | Přihlášen: ${req.isAuthenticated()}`);
     next();
@@ -59,21 +52,16 @@ app.use((req, res, next) => {
 // Cesty
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
-    res.redirect('/dashboard.html');
-});
+app.get('/auth/discord', passport.authenticate('discord', { scope: ['identify'] }));
+app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard.html'));
 
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => {
-    res.redirect('/dashboard.html');
-});
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
+app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard.html'));
 
 app.get('/dashboard.html', (req, res) => {
     if (req.isAuthenticated()) {
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } else {
-        console.log("[LOG] Přístup na dashboard zamítnut – uživatel není přihlášen.");
         res.redirect('/');
     }
 });
