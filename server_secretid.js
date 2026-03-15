@@ -2,7 +2,6 @@ const express = require('express');
 const session = require('express-session');
 const passport = require('passport');
 const DiscordStrategy = require('passport-discord').Strategy;
-const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const mongoose = require('mongoose');
 const path = require('path');
 const app = express();
@@ -19,13 +18,14 @@ const UserSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', UserSchema);
 
-// SEM VLOŽÍŠ TO ID, KTERÉ TI VYPIŠE KONZOLE (viz níže)
-const ADMIN_IDS = ["781859398183944192"];
+// SEM VLOŽÍŠ TO ID, KTERÉ UVIDÍŠ V LOGU NA RENDEROVI
+const ADMIN_IDS = ["TVOJE_ID_Z_LOGU"];
 
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'tajne-heslo',
-    resave: false, saveUninitialized: false
+    secret: process.env.SESSION_SECRET || 'lssd-secret-key',
+    resave: false, 
+    saveUninitialized: false
 }));
 
 app.use(passport.initialize());
@@ -37,28 +37,16 @@ passport.deserializeUser(async (id, done) => {
     done(null, user);
 });
 
-// OPRAVA: Přidán 'identify' scope pro Discord
+// Discord Strategy - s opraveným scope
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
     callbackURL: "https://lssd-web.onrender.com/auth/discord/callback",
-    scope: ['identify'] // TADY BYLA TA CHYBA Z OBRÁZKU
+    scope: ['identify']
 }, async (at, rt, profile, done) => {
     console.log("--- PŘIHLÁŠEN DISCORD ID: " + profile.id + " ---");
     let user = await User.findOne({ id: profile.id });
     if (!user) user = await User.create({ id: profile.id, displayName: profile.username });
-    return done(null, user);
-}));
-
-// Google Strategy
-passport.use(new GoogleStrategy({
-    clientID: process.env.GOOGLE_CLIENT_ID,
-    clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "https://lssd-web.onrender.com/auth/google/callback"
-}, async (at, rt, profile, done) => {
-    console.log("--- PŘIHLÁŠEN GOOGLE ID: " + profile.id + " ---");
-    let user = await User.findOne({ id: profile.id });
-    if (!user) user = await User.create({ id: profile.id, displayName: profile.displayName });
     return done(null, user);
 }));
 
@@ -67,26 +55,32 @@ app.use((req, res, next) => {
     next();
 });
 
-// CESTY
+// CESTY (Routes)
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-app.get('/auth/discord', passport.authenticate('discord'));
-app.get('/auth/discord/callback', passport.authenticate('discord', { successRedirect: '/dashboard.html', failureRedirect: '/' }));
+// Oprava pro přímý přístup k index.html (třeba při odhlášení)
+app.get('/index.html', (req, res) => res.redirect('/'));
 
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { successRedirect: '/dashboard.html', failureRedirect: '/' }));
+app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/auth/discord/callback', passport.authenticate('discord', { 
+    successRedirect: '/dashboard.html', 
+    failureRedirect: '/' 
+}));
 
 app.get('/dashboard.html', (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/');
-    
-    // Pokud jsi v seznamu ADMIN_IDS, pustí tě to HNED
     if (req.isAdmin) return res.sendFile(path.join(__dirname, 'dashboard.html'));
-
-    // Ostatní musí čekat na schválení
-    if (!req.user.approved) return res.send("Čekej na schválení od admina (toho, kdo má nastavené ADMIN_IDS).");
-    
+    if (!req.user.approved) return res.send("Čekej na schválení adminem.");
     if (!req.user.password) return res.sendFile(path.join(__dirname, 'set-password.html'));
     res.sendFile(path.join(__dirname, 'dashboard.html'));
+});
+
+// Opravená cesta pro odhlášení
+app.get('/logout', (req, res, next) => {
+    req.logout((err) => {
+        if (err) return next(err);
+        res.redirect('/');
+    });
 });
 
 const PORT = process.env.PORT || 10000;
