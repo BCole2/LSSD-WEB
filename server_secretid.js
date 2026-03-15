@@ -6,66 +6,106 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const path = require('path');
 const app = express();
 
-// 1. Nastavení proxy pro Render
+// 1. ABSOLUTNĚ KRITICKÉ PRO RENDER (musí být před session middlewarem)
 app.set('trust proxy', 1);
 
-// 2. Nastavení session s proxy: true
+// 2. Nastavení session
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback-tajne-heslo',
+    // Použije se z Renderu, nebo pevný řetězec, aby se klíč po restartu nezměnil
+    secret: process.env.SESSION_SECRET || 'pevne-tajne-heslo-ktere-se-nemeni-12345',
     resave: false,
-    saveUninitialized: false,
-    proxy: true, // ZDE JE TO DŮLEŽITÉ
-    name: 'lssd_session',
+    saveUninitialized: false, // Neuloží cookie, dokud se uživatel opravdu nepřihlásí
+    name: 'lssd_sid',         // Změněný název pro čistý štít v prohlížeči
     cookie: {
-        secure: true,      // HTTPS je na Renderu povinné
-        httpOnly: true,
-        sameSite: 'none',  // 'none' + secure je nutné pro cross-site OAuth
-        maxAge: 24 * 60 * 60 * 1000
+        secure: true,         // Render používá HTTPS
+        httpOnly: true,       // Ochrana před XSS útoky
+        sameSite: 'none',     // NUTNÉ pro návrat z Discordu/Googlu
+        maxAge: 24 * 60 * 60 * 1000 // 1 den platnosti
     }
 }));
 
+// 3. Inicializace Passportu
 app.use(passport.initialize());
 app.use(passport.session());
 
-// 3. Serializace
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((obj, done) => done(null, obj));
+// 4. Serializace a Deserializace
+passport.serializeUser((user, done) => {
+    done(null, user);
+});
 
-// 4. Strategie
+passport.deserializeUser((obj, done) => {
+    done(null, obj);
+});
+
+// 5. Autentizační strategie
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: "https://lssd-web.onrender.com/auth/discord/callback"
-}, (accessToken, refreshToken, profile, done) => done(null, profile)));
+    callbackURL: "https://lssd-web.onrender.com/auth/discord/callback",
+    scope: ['identify', 'email']
+}, (accessToken, refreshToken, profile, done) => {
+    return done(null, profile);
+}));
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: "https://lssd-web.onrender.com/auth/google/callback"
-}, (accessToken, refreshToken, profile, done) => done(null, profile)));
+}, (accessToken, refreshToken, profile, done) => {
+    return done(null, profile);
+}));
 
-// 5. Debug logy
+// 6. Debugovací logy pro Render
 app.use((req, res, next) => {
-    console.log(`[DEBUG] ${req.url} | SeshID: ${req.sessionID} | Auth: ${req.isAuthenticated()}`);
+    if (req.url !== '/favicon.ico') { // Ignorujeme ikonky, ať to neplevelí log
+        console.log(`[LOG] URL: ${req.url} | SessionID: ${req.sessionID} | Přihlášen: ${req.isAuthenticated()}`);
+    }
     next();
 });
 
-// 6. Cesty
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+// 7. Cesty a přesměrování
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
 
-app.get('/auth/discord', passport.authenticate('discord', { scope: ['identify'] }));
-app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard.html'));
+// --- DISCORD ---
+app.get('/auth/discord', passport.authenticate('discord'));
+app.get('/auth/discord/callback', 
+    passport.authenticate('discord', { failureRedirect: '/' }), 
+    (req, res) => {
+        // Vynucené uložení session před přesměrováním (řeší ztrátu cookie na Renderu)
+        req.session.save((err) => {
+            if (err) console.error("Chyba při ukládání session:", err);
+            res.redirect('/dashboard.html');
+        });
+    }
+);
 
-app.get('/auth/google', passport.authenticate('google', { scope: ['profile'] }));
-app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard.html'));
+// --- GOOGLE ---
+app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
+app.get('/auth/google/callback', 
+    passport.authenticate('google', { failureRedirect: '/' }), 
+    (req, res) => {
+        // Vynucené uložení session před přesměrováním
+        req.session.save((err) => {
+            if (err) console.error("Chyba při ukládání session:", err);
+            res.redirect('/dashboard.html');
+        });
+    }
+);
 
+// --- CHRÁNĚNÁ STRÁNKA ---
 app.get('/dashboard.html', (req, res) => {
     if (req.isAuthenticated()) {
         res.sendFile(path.join(__dirname, 'dashboard.html'));
     } else {
+        console.log("[LOG] Přístup odepřen - přesměrování na index.");
         res.redirect('/');
     }
 });
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server bezi na portu ${PORT}`));
+// 8. Spuštění serveru
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+    console.log(`Server bezi na portu ${PORT}`);
+});
