@@ -17,7 +17,7 @@ app.use(session({
     name: 'lssd_session',
     proxy: true, // Povolí předávání informací o HTTPS z proxy
     cookie: {
-        secure: true,    // VYŽADUJE HTTPS (Render poskytuje HTTPS automaticky)
+        secure: false,    // VYŽADUJE HTTPS (Render poskytuje HTTPS automaticky)
         httpOnly: true,  // Ochrana proti XSS
         sameSite: 'lax', // Standard pro přihlášení mezi doménami
         maxAge: 24 * 60 * 60 * 1000 // 24 hodin
