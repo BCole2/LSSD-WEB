@@ -6,19 +6,20 @@ const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const path = require('path');
 const app = express();
 
-// 1. Nastavení pro proxy (Render běží za proxy)
+// 1. Nastavení proxy pro Render
 app.set('trust proxy', 1);
 
-// 2. Nastavení session
+// 2. Nastavení session s proxy: true
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'super-tajne-heslo-pro-test',
+    secret: process.env.SESSION_SECRET || 'fallback-tajne-heslo',
     resave: false,
     saveUninitialized: false,
+    proxy: true, // ZDE JE TO DŮLEŽITÉ
     name: 'lssd_session',
     cookie: {
-        secure: true,      // Na Renderu musí být true (HTTPS)
+        secure: true,      // HTTPS je na Renderu povinné
         httpOnly: true,
-        sameSite: 'lax',
+        sameSite: 'none',  // 'none' + secure je nutné pro cross-site OAuth
         maxAge: 24 * 60 * 60 * 1000
     }
 }));
@@ -30,26 +31,26 @@ app.use(passport.session());
 passport.serializeUser((user, done) => done(null, user));
 passport.deserializeUser((obj, done) => done(null, obj));
 
-// Strategie (zjednodušeno)
+// 4. Strategie
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
-    callbackURL: "/auth/discord/callback"
+    callbackURL: "https://lssd-web.onrender.com/auth/discord/callback"
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
 passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    callbackURL: "/auth/google/callback"
+    callbackURL: "https://lssd-web.onrender.com/auth/google/callback"
 }, (accessToken, refreshToken, profile, done) => done(null, profile)));
 
-// 4. Debugovací middleware - Sledujeme SessionID
+// 5. Debug logy
 app.use((req, res, next) => {
-    console.log(`[DEBUG] URL: ${req.url} | SessionID: ${req.sessionID} | Přihlášen: ${req.isAuthenticated()}`);
+    console.log(`[DEBUG] ${req.url} | SeshID: ${req.sessionID} | Auth: ${req.isAuthenticated()}`);
     next();
 });
 
-// Cesty
+// 6. Cesty
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.get('/auth/discord', passport.authenticate('discord', { scope: ['identify'] }));
