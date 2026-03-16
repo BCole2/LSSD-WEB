@@ -8,15 +8,16 @@
         .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 25px; border-radius: 15px; }
         h1 { color: #f1c40f; border-bottom: 2px solid #333; padding-bottom: 10px; }
         
-        .prihlaska { background: #2a2a2a; padding: 15px; margin: 15px 0; border-radius: 8px; border-left: 5px solid #f1c40f; }
+        .prihlaska { background: #2a2a2a; padding: 20px; margin: 20px 0; border-left: 5px solid #f1c40f; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
         .details { display: none; margin-top: 15px; padding: 15px; background: #333; border-radius: 5px; line-height: 1.6; }
         
-        button { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin-top: 10px; transition: 0.3s; }
         .btn-view { background: #3498db; color: white; }
-        .btn-approve { background: #27ae60; color: white; }
+        .btn-view:hover { background: #2980b9; }
+        .btn-approve { background: #27ae60; color: white; width: 100%; margin-top: 20px; font-size: 1.1em; }
         
-        .field { margin-bottom: 10px; border-bottom: 1px solid #444; padding-bottom: 5px; }
-        strong { color: #f1c40f; }
+        .section-title { color: #f1c40f; margin-top: 15px; font-size: 1.1em; border-bottom: 1px solid #444; }
+        .field { margin: 5px 0; }
     </style>
 </head>
 <body>
@@ -24,48 +25,52 @@
 <div class="container">
     <h1>Administrační panel LSSD</h1>
     <p>Aktuálně čekající přihlášky:</p>
-    
     <div id="seznam-prihlasek">Načítám přihlášky...</div>
-    
     <br>
     <a href="/logout" style="color: #e74c3c;">Odhlásit se</a>
 </div>
 
 <script>
     async function nacistPrihlasky() {
-        try {
-            const res = await fetch('/api/admin/applications');
-            const apps = await res.json();
-            const list = document.getElementById('seznam-prihlasek');
-            
-            if (apps.length === 0) { list.innerHTML = "<p>Žádné nové přihlášky.</p>"; return; }
+        const res = await fetch('/api/admin/applications');
+        const apps = await res.json();
+        const list = document.getElementById('seznam-prihlasek');
+        
+        if (apps.length === 0) { list.innerHTML = "<p>Žádné nové přihlášky.</p>"; return; }
 
-            list.innerHTML = apps.map(app => `
-                <div class="prihlaska">
-                    <p><strong>Discord:</strong> ${app.discordTag} | <strong>IC Jméno:</strong> ${app.icName}</p>
-                    <button class="btn-view" onclick="toggleDetails('${app._id}')">Zobrazit celou přihlášku</button>
+        list.innerHTML = apps.map(a => `
+            <div class="prihlaska">
+                <p><strong>Discord:</strong> ${a.discordTag} | <strong>IC Jméno:</strong> ${a.icName}</p>
+                <button class="btn-view" onclick="toggleDetails('${a._id}')">Zobrazit celou přihlášku</button>
+                
+                <div id="details-${a._id}" class="details">
+                    <div class="section-title">Osobní informace (OOC)</div>
+                    <div class="field"><strong>Jméno:</strong> ${a.oocName} | <strong>Věk:</strong> ${a.age}</div>
+                    <div class="field"><strong>Dostupnost:</strong> ${a.availability}</div>
                     
-                    <div id="details-${app._id}" class="details">
-                        <div class="field"><strong>Osobní info:</strong> ${app.oocName}, ${app.age} let</div>
-                        <div class="field"><strong>Dostupnost:</strong> ${app.availability}</div>
-                        <div class="field"><strong>FiveM zkušenosti:</strong> ${app.fivemExp}</div>
-                        <div class="field"><strong>Policejní zkušenosti:</strong> ${app.policeExp}</div>
-                        <div class="field"><strong>RP Styl:</strong> ${app.rpStyle} | <strong>Oblast:</strong> ${app.area}</div>
-                        <div class="field"><strong>Specializace:</strong> ${app.specialization.join(', ')}</div>
-                        <div class="field"><strong>Oblíbené scénáře:</strong> ${app.scenarios}</div>
-                        <div class="field"><strong>Řešení konfliktů:</strong> ${app.conflicts}</div>
-                        <div class="field"><strong>Životopis:</strong> ${app.story}</div>
-                        <div class="field"><strong>Motivace:</strong> ${app.motivation}</div>
-                        <div class="field"><strong>Dovednosti:</strong> ${app.skills}</div>
-                        <div class="field"><strong>Přílohy/Odkazy:</strong> ${app.attachments || 'Žádné'}</div>
-                        
-                        <button class="btn-approve" onclick="schvalit('${app._id}')">SCHVÁLIT UŽIVATELE</button>
-                    </div>
+                    <div class="section-title">Herní zkušenosti</div>
+                    <div class="field"><strong>FiveM:</strong> ${a.fivemExp} | <strong>Předchozí servery:</strong> ${a.prevServers}</div>
+                    <div class="field"><strong>Roleplay zkušenosti:</strong> ${a.rpExp}</div>
+                    <div class="field"><strong>Policejní RP:</strong> ${a.policeExp}</div>
+                    <div class="field"><strong>Motivace vstupu:</strong> ${a.reason}</div>
+                    
+                    <div class="section-title">Roleplay pozadí</div>
+                    <div class="field"><strong>Styl:</strong> ${a.rpStyle} | <strong>Oblast:</strong> ${a.area}</div>
+                    <div class="field"><strong>Specializace:</strong> ${a.specialization.join(', ')}</div>
+                    <div class="field"><strong>Oblíbené scénáře:</strong> ${a.scenarios}</div>
+                    <div class="field"><strong>Řešení konfliktů:</strong> ${a.conflicts}</div>
+                    
+                    <div class="section-title">Detaily postavy (IC)</div>
+                    <div class="field"><strong>Jméno postavy:</strong> ${a.icName} | <strong>Věk postavy:</strong> ${a.icAge}</div>
+                    <div class="field"><strong>Životopis:</strong> ${a.story}</div>
+                    <div class="field"><strong>Motivace postavy:</strong> ${a.motivation}</div>
+                    <div class="field"><strong>Dovednosti:</strong> ${a.skills}</div>
+                    <div class="field"><strong>Přílohy/Odkazy:</strong> ${a.attachments || 'Žádné'}</div>
+                    
+                    <button class="btn-approve" onclick="schvalit('${a._id}')">SCHVÁLIT UŽIVATELE</button>
                 </div>
-            `).join('');
-        } catch (e) {
-            document.getElementById('seznam-prihlasek').innerHTML = "Chyba při načítání.";
-        }
+            </div>
+        `).join('');
     }
 
     function toggleDetails(id) {
@@ -84,6 +89,5 @@
 
     nacistPrihlasky();
 </script>
-
 </body>
 </html>
