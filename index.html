@@ -2,14 +2,20 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LSSD Přihlášení</title>
+    <title>LSSD Systém</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding-top: 50px; background: #f4f4f4; }
+        .btn { display: inline-block; padding: 15px 30px; margin: 10px; text-decoration: none; color: white; border-radius: 5px; font-weight: bold; }
+        .btn-nabor { background-color: #5865F2; } /* Discord modrá */
+        .btn-system { background-color: #2ecc71; } /* Zelená pro systém */
+    </style>
 </head>
 <body>
-    <h1>Vítejte v LSSD portálu</h1>
-    
-    <div>
-        <a href="/auth/discord">Přihlásit přes Discord</a>
-    </div>
+    <h1>LSSD Portál</h1>
+    <p>Vítejte v náborovém a správním systému.</p>
+
+    <a href="/auth/discord" class="btn btn-nabor">Nábor</a>
+
+    <a href="/login" class="btn btn-system">Vstoupit do systému</a>
 </body>
 </html>
