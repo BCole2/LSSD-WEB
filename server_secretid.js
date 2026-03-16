@@ -10,12 +10,12 @@ const path = require('path');
 const app = express();
 const bot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 
-// --- 1. KONFIGURACE A PROSTŘEDÍ ---
+// --- KONFIGURACE ---
 const ADMIN_IDS = ["TVOJE_DISCORD_ID"]; // ZDE VLOŽ SVÉ ID
 mongoose.connect(process.env.MONGO_URI);
 bot.login(process.env.DISCORD_BOT_TOKEN);
 
-// --- 2. DATABÁZOVÁ SCHÉMATA ---
+// --- SCHÉMATA ---
 const User = mongoose.model('User', new mongoose.Schema({ 
     discordId: { type: String, unique: true },
     icName: String,
@@ -24,25 +24,17 @@ const User = mongoose.model('User', new mongoose.Schema({
 }));
 
 const Application = mongoose.model('Application', new mongoose.Schema({
-    userId: String, 
-    discordTag: String, 
-    icName: String, 
-    status: { type: String, default: 'pending' }, 
-    data: Object
+    userId: String, discordTag: String, icName: String, status: { type: String, default: 'pending' }, data: Object
 }));
 
-// --- 3. MIDDLEWARE ---
+// --- MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(session({ 
-    secret: 'lssd-secret-key-2026', 
-    resave: false, 
-    saveUninitialized: false 
-}));
+app.use(session({ secret: 'lssd-secret', resave: false, saveUninitialized: false }));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- 4. PASSPORT DISCORD STRATEGIE ---
+// --- PASSPORT STRATEGIE ---
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
     const user = await User.findById(id);
@@ -60,52 +52,45 @@ passport.use(new DiscordStrategy({
     return done(null, user);
 }));
 
-// --- 5. API A LOGIKA ---
-
-// Autentizační brána
+// --- API CESTY (MUSÍ BÝT PŘED STATICKÝMI SOUBORY) ---
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
     res.redirect(req.user.approved ? '/dashboard' : '/prihlaska');
 });
 
-// Registrace hesla pro hru (po schválení)
-app.post('/register-game-account', async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Neautorizováno");
-    try {
-        const hash = await bcrypt.hash(req.body.password, 10);
-        await User.findByIdAndUpdate(req.user.id, { icName: req.body.icName, password: hash, approved: true });
-        res.send("<h1>Registrace dokončena!</h1><p>Nyní se můžete přihlásit do hry.</p>");
-    } catch (err) { res.status(500).send("Chyba při registraci"); }
+// Zpracování odeslané přihlášky
+app.post('/submit-application', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Nejdříve se přihlas!");
+    await Application.create({ userId: req.user.id, discordTag: req.user.discordId, icName: req.body.icName, data: req.body });
+    res.send("<h1>Přihláška odeslána!</h1><a href='/'>Zpět</a>");
 });
 
-// Schvalování přihlášek s PM notifikací
+// Admin schválení
 app.post('/api/admin/approve/:id', async (req, res) => {
     if (!req.isAuthenticated() || !ADMIN_IDS.includes(req.user.discordId)) return res.status(403).send("Přístup odepřen!");
-    
+    const appData = await Application.findById(req.params.id);
     try {
-        const appData = await Application.findById(req.params.id);
         const user = await bot.users.fetch(appData.userId);
-        await user.send(`Gratulujeme, tvoje přihláška k LSSD byla schválena! Nyní se přihlas na webu a dokonči registraci.`);
-        
-        appData.status = 'approved';
-        await appData.save();
-        res.json({ success: true });
-    } catch (e) { res.status(500).send("Chyba při schvalování"); }
+        await user.send(`Gratuluji, tvoje přihláška byla schválena! Registruj se zde: https://lssd-web.onrender.com/register`);
+    } catch (e) { console.error(e); }
+    appData.status = 'approved';
+    await appData.save();
+    res.json({ success: true });
 });
 
-// --- 6. STATICKÉ STRÁNKY ---
+// Registrace hesla
+app.post('/register-game-account', async (req, res) => {
+    if (!req.isAuthenticated()) return res.status(401).send("Přihlas se!");
+    const hash = await bcrypt.hash(req.body.password, 10);
+    await User.findByIdAndUpdate(req.user.id, { icName: req.body.icName, password: hash, approved: true });
+    res.send("<h1>Účet vytvořen!</h1>");
+});
+
+// --- STATICKÉ SOUBORY ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
-app.get('/dashboard', (req, res) => {
-    if (req.isAuthenticated() && ADMIN_IDS.includes(req.user.discordId)) {
-        res.sendFile(path.join(__dirname, 'dashboard.html'));
-    } else {
-        res.redirect('/');
-    }
-});
-app.get('/logout', (req, res) => { req.logout(() => res.redirect('/')); });
+app.get('/dashboard', (req, res) => (req.isAuthenticated() && ADMIN_IDS.includes(req.user.discordId)) ? res.sendFile(path.join(__dirname, 'dashboard.html')) : res.redirect('/'));
+app.get('/register', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'register.html')) : res.redirect('/'));
+app.get('/logout', (req, res) => req.logout(() => res.redirect('/')));
 
-// --- 7. START SERVERU ---
-app.listen(process.env.PORT || 10000, () => {
-    console.log('Server LSSD 1.0 běží na portu 10000.');
-});
+app.listen(10000, () => console.log('Server běží na portu 10000'));
