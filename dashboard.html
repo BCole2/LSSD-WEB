@@ -2,186 +2,67 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>LSSD Terminal v1.0</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>LSSD Administrace</title>
     <style>
-        .lssd-bg { background-color: #0a192f; }
-        .lssd-card { background-color: rgba(30, 41, 59, 0.7); border: 1px solid #334155; }
-        .hidden { display: none; }
+        body { font-family: sans-serif; background: #121212; color: #fff; padding: 20px; }
+        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 10px; }
+        .prihlaska { background: #2a2a2a; padding: 15px; margin: 15px 0; border-left: 4px solid #f1c40f; border-radius: 5px; }
+        button { background: #27ae60; color: white; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-weight: bold; }
+        h1 { color: #f1c40f; }
     </style>
 </head>
-<body class="lssd-bg text-slate-200 font-sans h-screen flex overflow-hidden">
+<body>
 
-    <aside class="w-72 border-r border-slate-800 flex flex-col bg-slate-950">
-        <div class="p-6 border-b border-slate-800 text-center">
-            <h1 class="text-2xl font-black italic tracking-tighter text-white">LSSD <span class="text-xs text-yellow-500 not-italic uppercase block tracking-widest">Sheriff's Dept.</span></h1>
-        </div>
+<div class="container">
+    <h1>Administrační panel LSSD</h1>
+    <p>Zde uvidíš seznam hráčů čekajících na schválení:</p>
+    
+    <div id="seznam-prihlasek">
+        <p>Načítám přihlášky...</p>
+    </div>
+    
+    <hr>
+    <a href="/logout">Odhlásit se</a>
+</div>
 
-        <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
-            <button onclick="show('dash')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-slate-800 transition text-sm font-bold flex items-center space-x-3">
-                <span>🏠</span> <span>Nástěnka</span>
-            </button>
-            <button onclick="show('file')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-slate-800 transition text-sm font-bold flex items-center space-x-3">
-                <span>📁</span> <span>Moje Složka</span>
-            </button>
-            <button onclick="show('edu')" class="nav-btn w-full text-left p-3 rounded-lg hover:bg-slate-800 transition text-sm font-bold flex items-center space-x-3">
-                <span>📖</span> <span>Materiály</span>
-            </button>
-
-            <div class="pt-6 mt-6 border-t border-slate-800">
-                <p class="text-[10px] uppercase text-slate-500 px-3 mb-2">Executive Staff</p>
-                <button onclick="show('admin')" class="w-full text-left p-3 rounded-lg hover:bg-red-900/20 text-red-400 text-sm font-bold flex items-center space-x-3">
-                    <span>🛡️</span> <span>Správa členů</span>
-                </button>
-            </div>
-        </nav>
-
-        <div class="p-4 border-t border-slate-800 bg-slate-900/50">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded bg-yellow-600 flex items-center justify-center font-black text-black">JD</div>
-                <div class="flex-1">
-                    <p class="text-xs font-bold text-white">John Doe</p>
-                    <p class="text-[10px] text-yellow-500 uppercase">Deputy Sheriff</p>
-                </div>
-                <a href="index.html" class="text-xs opacity-50 hover:opacity-100">Odhlásit</a>
-            </div>
-        </div>
-    </aside>
-
-    <main class="flex-1 p-10 overflow-y-auto bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]">
-        
-        <div id="sec-dash" class="section">
-            <div class="flex justify-between items-center mb-10">
-                <h2 class="text-4xl font-black uppercase italic">Centrální Nástěnka</h2>
-                <div class="text-right">
-                    <p id="date" class="text-xs font-mono text-yellow-500 uppercase"></p>
-                </div>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lssd-card p-8 rounded-2xl shadow-2xl">
-                    <h3 class="text-xs font-bold text-yellow-500 uppercase mb-6 tracking-widest">Aktivní Patrola</h3>
-                    <div class="text-center">
-                        <div id="timer" class="text-6xl font-mono text-white mb-8 tracking-tighter">00:00:00</div>
-                        <button id="pBtn" onclick="togglePatrol()" class="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white font-black rounded-xl transition shadow-lg shadow-blue-900/20">ZAHÁJIT SLUŽBU</button>
-                    </div>
-                </div>
-
-                <div class="lg:col-span-2 lssd-card p-8 rounded-2xl">
-                    <h3 class="text-xs font-bold text-yellow-500 uppercase mb-6 tracking-widest">Poslední Oznámení</h3>
-                    <div class="space-y-4">
-                        <div class="p-4 bg-slate-900/80 border-l-4 border-blue-600 rounded-r-lg">
-                            <p class="text-[10px] opacity-40 uppercase mb-1">Vedení Akademie • Před hodinou</p>
-                            <p class="font-bold">Náborové řízení v1.0 spuštěno. Kadeti, zkontrolujte si své složky.</p>
-                        </div>
-                        <div class="p-4 bg-slate-900/80 border-l-4 border-yellow-600 rounded-r-lg">
-                            <p class="text-[10px] opacity-40 uppercase mb-1">Executive Staff • Včera</p>
-                            <p class="font-bold">Byla aktualizována mapa hlídek pro oblast Paleto Bay.</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="sec-file" class="section hidden text-center max-w-4xl mx-auto">
-            <h2 class="text-3xl font-black uppercase italic mb-10">Osobní Složka Člena</h2>
-            <div class="lssd-card p-10 rounded-2xl flex text-left space-x-10">
-                <div class="w-48 h-64 bg-slate-900 border border-slate-700 rounded-lg flex items-center justify-center italic text-slate-700 font-bold uppercase">No Photo</div>
-                <div class="flex-1">
-                    <div class="border-b border-slate-700 pb-4 mb-6">
-                        <h3 class="text-3xl font-bold">John Doe</h3>
-                        <p class="text-yellow-500 font-bold uppercase tracking-widest text-sm">Deputy Sheriff I (ID: #8842)</p>
-                    </div>
-                    <div class="grid grid-cols-2 gap-6 text-sm">
-                        <div><p class="opacity-40">Status:</p><p class="font-bold text-green-400">AKTIVNÍ</p></div>
-                        <div><p class="opacity-40">Divize:</p><p class="font-bold">Patrol Division</p></div>
-                        <div><p class="opacity-40">Datum nástupu:</p><p class="font-bold">20. 02. 2026</p></div>
-                        <div><p class="opacity-40">Vyznamenání:</p><p class="font-bold text-yellow-500">None</p></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div id="sec-edu" class="section hidden">
-            <h2 class="text-3xl font-black uppercase italic mb-10 text-center">Výukové Materiály</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="lssd-card p-6 rounded-xl hover:bg-slate-800 transition cursor-pointer">
-                    <p class="text-3xl mb-4">⚖️</p>
-                    <h4 class="font-bold text-lg mb-2 text-yellow-500">Trestní zákoník</h4>
-                    <p class="text-xs opacity-60">Kompletní seznam paragrafů a trestních sazeb.</p>
-                </div>
-                <div class="lssd-card p-6 rounded-xl hover:bg-slate-800 transition cursor-pointer">
-                    <p class="text-3xl mb-4">📢</p>
-                    <h4 class="font-bold text-lg mb-2 text-yellow-500">Kodex 10-Codes</h4>
-                    <p class="text-xs opacity-60">Seznam radiokódů pro efektivní komunikaci.</p>
-                </div>
-                <div class="lssd-card p-6 rounded-xl hover:bg-slate-800 transition cursor-pointer">
-                    <p class="text-3xl mb-4">🚘</p>
-                    <h4 class="font-bold text-lg mb-2 text-yellow-500">Dopravní předpisy</h4>
-                    <p class="text-xs opacity-60">Postupy při zastavování vozidel a silničních kontrolách.</p>
-                </div>
-            </div>
-        </div>
-
-        <div id="sec-admin" class="section hidden">
-            <h2 class="text-3xl font-black uppercase italic mb-10">Executive Administration</h2>
-            <div class="lssd-card rounded-2xl overflow-hidden shadow-2xl">
-                <table class="w-full text-left">
-                    <thead class="bg-slate-900/80 text-[10px] text-yellow-500 uppercase tracking-[0.2em]">
-                        <tr>
-                            <th class="p-6">Jméno / ID</th>
-                            <th class="p-6">Hodnost</th>
-                            <th class="p-6">Poslední Aktivita</th>
-                            <th class="p-6 text-right">Akce</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-800">
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-6 font-bold">John Doe (#8842)</td>
-                            <td class="p-6"><span class="px-3 py-1 bg-blue-900/40 border border-blue-500/50 rounded text-[10px]">DEPUTY I</span></td>
-                            <td class="p-6 text-sm opacity-50">Dnes 14:12</td>
-                            <td class="p-6 text-right text-xs font-bold text-yellow-500"><button class="hover:underline">SPRAVOVAT ROLE</button></td>
-                        </tr>
-                        <tr class="hover:bg-slate-800/40">
-                            <td class="p-6 font-bold">Kadet Petr (#9901)</td>
-                            <td class="p-6"><span class="px-3 py-1 bg-slate-900 border border-slate-700 rounded text-[10px]">KADET</span></td>
-                            <td class="p-6 text-sm opacity-50">Včera 20:05</td>
-                            <td class="p-6 text-right text-xs font-bold text-yellow-500"><button class="hover:underline">SPRAVOVAT ROLE</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-    </main>
-
-    <script>
-        // 1. Přepínání sekcí
-        function show(id) {
-            document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
-            document.getElementById('sec-' + id).classList.remove('hidden');
-        }
-
-        // 2. Datum v dashboardu
-        document.getElementById('date').innerText = new Date().toLocaleDateString('cs-CZ', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-
-        // 3. Stopky patroly
-        let sec = 0, timer, on = false;
-        function togglePatrol() {
-            on = !on;
-            let btn = document.getElementById('pBtn');
-            if(on) {
-                btn.innerText = "UKONČIT SLUŽBU"; btn.style.background = "#ef4444";
-                timer = setInterval(() => {
-                    sec++;
-                    let h = Math.floor(sec/3600), m = Math.floor((sec%3600)/60), s = sec%60;
-                    document.getElementById('timer').innerText = [h,m,s].map(v => v < 10 ? "0"+v : v).join(":");
-                }, 1000);
-            } else {
-                btn.innerText = "ZAHÁJIT SLUŽBU"; btn.style.background = "#2563eb";
-                clearInterval(timer); alert("Hlídka ukončena. Čas uložen.");
+<script>
+    async function nacistPrihlasky() {
+        try {
+            const response = await fetch('/api/admin/applications');
+            const apps = await response.json();
+            const list = document.getElementById('seznam-prihlasek');
+            
+            if (apps.length === 0) {
+                list.innerHTML = "<p>Žádné nové přihlášky.</p>";
+                return;
             }
+
+            list.innerHTML = apps.map(app => `
+                <div class="prihlaska">
+                    <p><strong>Discord:</strong> ${app.discordTag}</p>
+                    <p><strong>IC Jméno:</strong> ${app.icName}</p>
+                    <p><strong>Věk:</strong> ${app.icAge} | <strong>Zkušenosti:</strong> ${app.fivemExp}</p>
+                    <p><strong>Motivace:</strong> ${app.reason}</p>
+                    <button onclick="schvalit('${app._id}')">SCHVÁLIT A PŘIJMOUT</button>
+                </div>
+            `).join('');
+        } catch (e) {
+            document.getElementById('seznam-prihlasek').innerHTML = "Chyba při načítání přihlášek.";
         }
-    </script>
+    }
+
+    async function schvalit(id) {
+        const res = await fetch('/api/admin/approve/' + id, { method: 'POST' });
+        const result = await res.json();
+        if (result.success) {
+            alert("Uživatel byl schválen!");
+            nacistPrihlasky(); // Obnoví seznam
+        }
+    }
+
+    // Spustit při načtení stránky
+    nacistPrihlasky();
+</script>
+
 </body>
 </html>
