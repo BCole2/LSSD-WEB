@@ -2,136 +2,156 @@
 <html lang="cs">
 <head>
     <meta charset="UTF-8">
-    <title>LSSD | Náborový formulář</title>
+    <title>LSSD | Náborový systém</title>
     <style>
-        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 40px; }
-        .form-container { background: #1e1e1e; padding: 30px; border-radius: 15px; width: 100%; max-width: 600px; border-top: 5px solid #f1c40f; }
-        .step { display: none; }
-        .step.active { display: block; }
-        label { display: block; margin-top: 15px; font-weight: bold; color: #f1c40f; }
-        input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; }
-        button { background: #f1c40f; color: black; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 15px; }
-        .btn-prev { background: #444; color: white; margin-right: 10px; }
+        body { background-color: #0f0f0f; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; justify-content: center; padding: 50px; }
+        .form-box { width: 100%; max-width: 700px; background-color: #1a1a1a; padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); border-top: 6px solid #f1c40f; }
+        h2 { color: #f1c40f; margin-bottom: 25px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .step { display: none; } .step.active { display: block; }
+        label { display: block; margin-top: 18px; font-weight: 600; font-size: 0.95em; color: #ccc; }
+        input[type="text"], input[type="number"], textarea, select { width: 100%; padding: 12px; margin-top: 6px; background: #252525; border: 1px solid #444; color: #fff; border-radius: 6px; box-sizing: border-box; }
+        textarea { height: 100px; resize: vertical; }
+        .checkbox-group { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; padding: 15px; background: #222; border-radius: 6px; }
+        button { background-color: #f1c40f; color: #000; border: none; padding: 14px 25px; border-radius: 6px; font-weight: bold; cursor: pointer; margin-top: 25px; transition: 0.3s; }
+        button:hover { background-color: #d4ac0d; }
+        .btn-prev { background-color: #444; color: #fff; margin-right: 15px; }
+        .required-star { color: #e74c3c; }
     </style>
 </head>
 <body>
 
-<div class="form-container">
-    <form action="/submit-application" method="POST">
+<div class="form-box">
+    <form action="/submit-application" method="POST" id="naborForm">
         
         <div class="step active" id="step1">
-            <h2>1. Osobní informace OOC</h2>
-            <label>Křestní jméno *</label>
-            <input type="text" name="oocName" required>
-            <label>Věk *</label>
-            <input type="number" name="age" required>
-            <label>Dostupnost (dny a časy) *</label>
-            <textarea name="availability" required></textarea>
-            <button type="button" onclick="validateAndNext(2)">Další strana</button>
+            <h2>Strana 1: Osobní informace (OOC)</h2>
+            <label>Křestní jméno <span class="required-star">*</span></label>
+            <input type="text" name="oocName" required placeholder="Vaše reálné jméno">
+            
+            <label>Věk <span class="required-star">*</span></label>
+            <input type="number" name="age" required placeholder="Váš věk">
+            
+            <label>Dostupnost (dny v týdnu a časy) <span class="required-star">*</span></label>
+            <textarea name="availability" required placeholder="Např. Pondělí - Pátek: 16:00 - 22:00"></textarea>
+            
+            <button type="button" onclick="validateAndNext(1, 2)">Pokračovat na zkušenosti</button>
         </div>
 
         <div class="step" id="step2">
-            <h2>2. Herní zkušenosti</h2>
-            <label>Zkušenosti s FiveM *</label>
+            <h2>Strana 2: Herní zkušenosti</h2>
+            <label>Zkušenosti s FiveM <span class="required-star">*</span></label>
             <select name="fivemExp" required>
-                <option value="">-- Vyberte --</option>
+                <option value="">-- Vyberte úroveň --</option>
                 <option value="Začátečník">Začátečník (0-6 měsíců)</option>
                 <option value="Pokročilý">Pokročilý (6 měsíců - 2 roky)</option>
                 <option value="Zkušený">Zkušený (2+ roky)</option>
+                <option value="Expert">Expert (5+ let)</option>
             </select>
-            <label>Předchozí servery *</label>
-            <input type="text" name="prevServers" required>
-            <label>Zkušenosti s RP *</label>
+            
+            <label>Předchozí servery <span class="required-star">*</span></label>
+            <input type="text" name="prevServers" required placeholder="Název serverů">
+            
+            <label>Zkušenosti s roleplayem <span class="required-star">*</span></label>
             <select name="rpExp" required>
-                <option value="">-- Vyberte --</option>
-                <option value="Žádné">Žádné</option>
+                <option value="">-- Vyberte úroveň --</option>
+                <option value="Žádné">Žádné zkušenosti</option>
                 <option value="Základní">Základní</option>
                 <option value="Dobré">Dobré</option>
+                <option value="Výborné">Výborné</option>
             </select>
-            <label>Zkušenosti s policejním RP *</label>
-            <textarea name="policeExp" required></textarea>
-            <label>Proč chcete vstoupit do LSSD? *</label>
-            <textarea name="reason" required></textarea>
-            <button type="button" class="btn-prev" onclick="changeStep(1)">Zpět</button>
-            <button type="button" onclick="validateAndNext(3)">Další strana</button>
+            
+            <label>Zkušenosti s policejním / sheriffským RP <span class="required-star">*</span></label>
+            <textarea name="policeExp" required placeholder="Popište své zkušenosti v PD/SD"></textarea>
+            
+            <label>Proč chcete vstoupit do LSSD? <span class="required-star">*</span></label>
+            <textarea name="reason" required placeholder="Motivace pro LSSD"></textarea>
+            
+            <button type="button" class="btn-prev" onclick="changeStep(2, 1)">Zpět</button>
+            <button type="button" onclick="validateAndNext(2, 3)">Pokračovat na RP pozadí</button>
         </div>
 
         <div class="step" id="step3">
-            <h2>3. Roleplay pozadí</h2>
-            <label>Preferovaný styl RP *</label>
+            <h2>Strana 3: Roleplay pozadí</h2>
+            <label>Preferovaný styl roleplaye <span class="required-star">*</span></label>
             <select name="rpStyle" required>
                 <option value="">-- Vyberte --</option>
-                <option value="Serious">Serious RP</option>
-                <option value="Semi-serious">Semi-serious</option>
-                <option value="Casual">Casual</option>
-                <option value="Mixed">Smíšený</option>
+                <option value="Serious">Serious RP (vážný)</option>
+                <option value="Semi-serious">Semi-serious RP</option>
+                <option value="Casual">Casual RP (uvolněný)</option>
+                <option value="Mixed">Smíšený styl</option>
             </select>
-            <label>Preferovaná oblast *</label>
+            
+            <label>Preferovaná oblast hlídkování <span class="required-star">*</span></label>
             <select name="area" required>
-                <option value="">-- Vyberte --</option>
+                <option value="">-- Vyberte oblast --</option>
                 <option value="LS">Downtown Los Santos</option>
                 <option value="Sandy">Sandy Shores</option>
                 <option value="Paleto">Paleto Bay</option>
-                <option value="Highway">Dálniční</option>
+                <option value="Highway">Dálniční hlídky</option>
+                <option value="Any">Jakákoliv oblast</option>
             </select>
-            <label>Specializace (vyberte aspoň jednu) *</label>
-            <select name="specialization" required>
-                <option value="">-- Vyberte --</option>
-                <option value="Dopravní">Dopravní policie</option>
-                <option value="Detektiv">Detektivní práce</option>
-                <option value="SWAT">SWAT tým</option>
-                <option value="K9">K-9 jednotka</option>
-            </select>
-            <label>Oblíbené RP scénáře *</label>
-            <textarea name="scenarios" required></textarea>
-            <label>Jak řešíte konflikty v RP? *</label>
-            <textarea name="conflicts" required></textarea>
-            <button type="button" class="btn-prev" onclick="changeStep(2)">Zpět</button>
-            <button type="button" onclick="validateAndNext(4)">Další strana</button>
+            
+            <label>Zájem o specializaci (vyberte aspoň jednu) <span class="required-star">*</span></label>
+            <div class="checkbox-group">
+                <label><input type="checkbox" name="specialization" value="Dopravní"> Dopravní policie</label>
+                <label><input type="checkbox" name="specialization" value="Detektiv"> Detektivní práce</label>
+                <label><input type="checkbox" name="specialization" value="SWAT"> SWAT tým</label>
+                <label><input type="checkbox" name="specialization" value="K9"> K-9 jednotka</label>
+                <label><input type="checkbox" name="specialization" value="Air"> Letecká podpora</label>
+                <label><input type="checkbox" name="specialization" value="Train"> Výcvik nováčků</label>
+            </div>
+            
+            <label>Oblíbené RP scénáře <span class="required-star">*</span></label>
+            <textarea name="scenarios" required placeholder="Co vás v RP nejvíce baví?"></textarea>
+            
+            <label>Jak řešíte konflikty v RP? <span class="required-star">*</span></label>
+            <textarea name="conflicts" required placeholder="Popište postup při konfliktu"></textarea>
+            
+            <button type="button" class="btn-prev" onclick="changeStep(3, 2)">Zpět</button>
+            <button type="button" onclick="validateAndNext(3, 4)">Pokračovat na postavu</button>
         </div>
 
         <div class="step" id="step4">
-            <h2>4. Detaily postavy</h2>
-            <label>Jméno postavy *</label>
-            <input type="text" name="icName" required>
-            <label>Věk postavy *</label>
-            <input type="number" name="icAge" required>
-            <label>Životopis *</label>
-            <textarea name="story" required></textarea>
-            <label>Motivace *</label>
-            <textarea name="motivation" required></textarea>
-            <label>Dovednosti *</label>
-            <textarea name="skills" required></textarea>
+            <h2>Strana 4: Detaily postavy</h2>
+            <label>Jméno postavy <span class="required-star">*</span></label>
+            <input type="text" name="icName" required placeholder="Jméno a příjmení">
             
-            <label>Přílohy (nepovinné)</label>
-            <textarea name="attachments" placeholder="Vložte odkazy..."></textarea>
+            <label>Věk postavy <span class="required-star">*</span></label>
+            <input type="number" name="icAge" required placeholder="Věk postavy">
             
-            <button type="button" class="btn-prev" onclick="changeStep(3)">Zpět</button>
+            <label>Životopis (max 1000 znaků) <span class="required-star">*</span></label>
+            <textarea name="story" maxlength="1000" required placeholder="Stručný životní příběh postavy"></textarea>
+            
+            <label>Motivace postavy <span class="required-star">*</span></label>
+            <textarea name="motivation" required placeholder="Proč se postava hlásí k LSSD?"></textarea>
+            
+            <label>Dovednosti a schopnosti postavy <span class="required-star">*</span></label>
+            <textarea name="skills" required placeholder="Co postava umí (střelba, řízení, vyjednávání)"></textarea>
+            
+            <label>Přílohy (odkazy na fotky, certifikáty - nepovinné)</label>
+            <textarea name="attachments" placeholder="Vložte odkazy zde..."></textarea>
+            
+            <button type="button" class="btn-prev" onclick="changeStep(4, 3)">Zpět</button>
             <button type="submit">ODESLAT FORMULÁŘ</button>
         </div>
+
     </form>
 </div>
 
 <script>
-    function changeStep(s) {
-        document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
-        document.getElementById('step' + s).classList.add('active');
+    function changeStep(from, to) {
+        document.getElementById('step' + from).classList.remove('active');
+        document.getElementById('step' + to).classList.add('active');
     }
-
-    function validateAndNext(s) {
-        const currentStep = document.querySelector('.step.active');
-        const inputs = currentStep.querySelectorAll('[required]');
+    
+    function validateAndNext(curr, next) {
+        const stepDiv = document.getElementById('step' + curr);
+        const inputs = stepDiv.querySelectorAll('[required]');
         let valid = true;
-        inputs.forEach(input => {
-            if (!input.value) {
-                input.style.borderColor = 'red';
-                valid = false;
-            } else {
-                input.style.borderColor = '#444';
-            }
-        });
-        if (valid) changeStep(s);
-        else alert("Prosím, vyplňte všechna povinná pole označená hvězdičkou!");
+        inputs.forEach(i => { if(!i.value) valid = false; });
+        
+        if(valid) changeStep(curr, next);
+        else alert("Prosím, vyplňte všechna povinná pole označená červenou hvězdičkou!");
     }
 </script>
 </body>
