@@ -35,7 +35,7 @@ const ApplicationSchema = new mongoose.Schema({
 });
 const Application = mongoose.model('Application', ApplicationSchema);
 
-const ADMIN_IDS = ["TVOJE_ID_Z_LOGU"]; // <-- Zde si vlož své ID
+const ADMIN_IDS = ["781859398183944192"]; // <-- Zde si vlož své ID
 
 // MIDDLEWARE
 app.use(express.urlencoded({ extended: true }));
