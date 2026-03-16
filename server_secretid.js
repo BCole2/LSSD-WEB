@@ -10,7 +10,8 @@ const path = require('path');
 const app = express();
 const bot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 
-// --- KONFIGURACE A DB ---
+// --- KONFIGURACE A ADMINI ---
+const ADMIN_IDS = ["781859398183944192"]; // ZDE VLOŽ SVÉ ID
 mongoose.connect(process.env.MONGO_URI);
 bot.login(process.env.DISCORD_BOT_TOKEN);
 
@@ -31,6 +32,11 @@ app.use(session({ secret: 'lssd-secret', resave: false, saveUninitialized: false
 app.use(passport.initialize());
 app.use(passport.session());
 
+app.use((req, res, next) => {
+    if (req.isAuthenticated()) req.isAdmin = ADMIN_IDS.includes(req.user.id);
+    next();
+});
+
 // --- PASSPORT STRATEGIE ---
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => done(null, await User.findOne({ id })));
@@ -46,31 +52,31 @@ passport.use(new DiscordStrategy({
     return done(null, user);
 }));
 
-// --- ROUTY (DŮLEŽITÉ: Definovat před statickými soubory) ---
-
-// 1. Auth cesty
+// --- API CESTY ---
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/check-status'));
 
-// 2. Logika
 app.get('/check-status', (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/');
     res.redirect(req.user.approved ? '/dashboard' : '/prihlaska');
 });
 
 app.post('/submit-application', async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Přihlas se!");
+    if (!req.isAuthenticated()) return res.status(401).send("Neautorizováno");
     await Application.create({ userId: req.user.id, discordTag: req.user.displayName, ...req.body });
-    res.send("<h1>Odesláno!</h1>");
+    res.send("<h1>Přihláška odeslána!</h1><a href='/'>Zpět</a>");
 });
 
 app.post('/api/admin/approve/:id', async (req, res) => {
+    if (!req.isAdmin) return res.status(403).send("Forbidden");
     const appData = await Application.findById(req.params.id);
-    if (!appData) return res.status(404).send("Nenalezeno");
+    
+    // Odeslání PM uživateli
     try {
         const user = await bot.users.fetch(appData.userId);
         await user.send(`Gratuluji, tvoje přihláška byla schválena! Registruj se zde: https://lssd-web.onrender.com/register`);
     } catch (e) { console.error("PM selhala:", e); }
+
     await User.findOneAndUpdate({ id: appData.userId }, { approved: true, icName: appData.icName });
     appData.status = 'approved';
     await appData.save();
@@ -84,11 +90,11 @@ app.post('/register-final', async (req, res) => {
     res.send("<h1>Účet vytvořen!</h1>");
 });
 
-// 3. Statické stránky
+// --- STATICKÉ STRÁNKY ---
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
 app.get('/dashboard', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'dashboard.html')) : res.redirect('/'));
 app.get('/register', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'register.html')) : res.redirect('/'));
 app.get('/logout', (req, res) => req.logout(() => res.redirect('/')));
 
-app.listen(process.env.PORT || 10000, () => console.log('Server běží na portu 10000.'));
+app.listen(process.env.PORT || 10000);
