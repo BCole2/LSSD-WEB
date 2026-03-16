@@ -9,18 +9,19 @@ const path = require('path');
 
 const app = express();
 
-// --- 1. SCHÉMATA ---
+// --- 1. SCHÉMA S OPRAVOU PŘÍSTUPU K HESLU ---
+// Odstranili jsme "select: false", aby mongoose heslo vždy správně načetlo
 const User = mongoose.model('User', new mongoose.Schema({ 
     discordId: { type: String, unique: true },
     icName: { type: String, unique: true },
-    password: { type: String, select: false },
+    password: { type: String }, 
     approved: { type: Boolean, default: false }
 }));
 
 // --- 2. MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
 app.use(session({
-    secret: 'lssd-2026-secret',
+    secret: 'lssd-secure-2026',
     resave: false,
     saveUninitialized: false,
     store: MongoStore.create({ mongoUrl: process.env.MONGO_URI })
@@ -42,41 +43,47 @@ passport.use(new DiscordStrategy({
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => done(null, await User.findById(id)));
 
-// --- 4. CESTY ---
+// --- 4. ZABEZPEČENÉ POST ROUTY ---
 app.post('/login', async (req, res) => {
     const { icName, password } = req.body;
-    const user = await User.findOne({ icName }).select('+password');
+    const user = await User.findOne({ icName });
     if (user && user.password && await bcrypt.compare(password, user.password)) {
         req.login(user, () => res.redirect('/dashboard'));
-    } else { res.send("Špatné údaje."); }
+    } else {
+        res.send("Špatné jméno nebo heslo. <a href='/login'>Zpět</a>");
+    }
 });
 
 app.post('/set-password', async (req, res) => {
     if (!req.isAuthenticated()) return res.redirect('/login');
     const hash = await bcrypt.hash(req.body.password, 10);
     await User.findByIdAndUpdate(req.user.id, { password: hash });
-    res.send("Heslo nastaveno! <a href='/dashboard'>Vstoupit</a>");
+    res.redirect('/dashboard');
 });
 
+// --- 5. GET ROUTY S KONTROLOU ---
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/prihlaska'));
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
-app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
+
 app.get('/dashboard', (req, res) => {
+    // KONTROLA: Pokud nejsi přihlášen, nepustí tě dál
     if (!req.isAuthenticated()) return res.redirect('/login');
+    // KONTROLA: Pokud jsi přihlášen přes Discord, ale nemáš heslo, vynutí jeho vytvoření
     if (!req.user.password) return res.send("<h1>Nastav si heslo:</h1><form action='/set-password' method='POST'><input type='password' name='password' required><button>Uložit</button></form>");
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-// --- 5. START SERVERU S KONTROLOU DB ---
+app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
+
+// --- 6. START SERVERU ---
 const startServer = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log("MongoDB připojeno.");
+        console.log("DB připojena.");
         app.listen(10000, () => console.log("Server běží na portu 10000"));
-    } catch (err) {
-        console.error("Chyba DB:", err);
-    }
+    } catch (err) { console.error("Chyba DB:", err); }
 };
 startServer();
