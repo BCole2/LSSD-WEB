@@ -9,8 +9,7 @@ const path = require('path');
 
 const app = express();
 
-// --- 1. SCHÉMA S OPRAVOU PŘÍSTUPU K HESLU ---
-// Odstranili jsme "select: false", aby mongoose heslo vždy správně načetlo
+// --- 1. SCHÉMA ---
 const User = mongoose.model('User', new mongoose.Schema({ 
     discordId: { type: String, unique: true },
     icName: { type: String, unique: true },
@@ -43,7 +42,7 @@ passport.use(new DiscordStrategy({
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => done(null, await User.findById(id)));
 
-// --- 4. ZABEZPEČENÉ POST ROUTY ---
+// --- 4. CESTY ---
 app.post('/login', async (req, res) => {
     const { icName, password } = req.body;
     const user = await User.findOne({ icName });
@@ -61,29 +60,27 @@ app.post('/set-password', async (req, res) => {
     res.redirect('/dashboard');
 });
 
-// --- 5. GET ROUTY S KONTROLOU ---
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => res.redirect('/prihlaska'));
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, 'login.html')));
+app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
 
 app.get('/dashboard', (req, res) => {
-    // KONTROLA: Pokud nejsi přihlášen, nepustí tě dál
     if (!req.isAuthenticated()) return res.redirect('/login');
-    // KONTROLA: Pokud jsi přihlášen přes Discord, ale nemáš heslo, vynutí jeho vytvoření
     if (!req.user.password) return res.send("<h1>Nastav si heslo:</h1><form action='/set-password' method='POST'><input type='password' name='password' required><button>Uložit</button></form>");
     res.sendFile(path.join(__dirname, 'dashboard.html'));
 });
 
-app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
-
-// --- 6. START SERVERU ---
+// --- 5. START SERVERU ---
 const startServer = async () => {
     try {
         await mongoose.connect(process.env.MONGO_URI);
         console.log("DB připojena.");
         app.listen(10000, () => console.log("Server běží na portu 10000"));
-    } catch (err) { console.error("Chyba DB:", err); }
+    } catch (err) { 
+        console.error("Chyba DB:", err); 
+    }
 };
 startServer();
