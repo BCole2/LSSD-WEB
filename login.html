@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>Přihlášení do systému</title>
+    <style>
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #f4f4f4; }
+        form { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        input { display: block; width: 100%; margin: 10px 0; padding: 10px; }
+        button { width: 100%; padding: 10px; background: #2ecc71; color: white; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <form action="/login" method="POST">
+        <h2>Vstup do systému</h2>
+        <input type="text" name="icName" placeholder="IC Jméno" required>
+        <input type="password" name="icName" placeholder="Heslo" required>
+        <button type="submit">Přihlásit se</button>
+    </form>
+</body>
+</html>
