@@ -14,7 +14,8 @@ const User = mongoose.model('User', new mongoose.Schema({
     discordId: { type: String, unique: true },
     icName: { type: String, unique: true },
     password: { type: String }, 
-    approved: { type: Boolean, default: false }
+    approved: { type: Boolean, default: false },
+    applicationData: Object // Sem uložíme data z přihlášky
 }));
 
 // --- 2. MIDDLEWARE ---
@@ -49,7 +50,7 @@ app.post('/login', async (req, res) => {
     if (user && user.password && await bcrypt.compare(password, user.password)) {
         req.login(user, () => res.redirect('/dashboard'));
     } else {
-        res.send("Špatné jméno nebo heslo. <a href='/login'>Zpět</a>");
+        res.send("Špatné údaje. <a href='/login'>Zpět</a>");
     }
 });
 
@@ -58,6 +59,13 @@ app.post('/set-password', async (req, res) => {
     const hash = await bcrypt.hash(req.body.password, 10);
     await User.findByIdAndUpdate(req.user.id, { password: hash });
     res.redirect('/dashboard');
+});
+
+// ZDE JE OPRAVA: Zpracování přihlášky
+app.post('/submit-application', async (req, res) => {
+    if (!req.isAuthenticated()) return res.redirect('/login');
+    await User.findByIdAndUpdate(req.user.id, { applicationData: req.body });
+    res.send("<h1>Přihláška odeslána!</h1><a href='/dashboard'>Zpět na profil</a>");
 });
 
 app.get('/auth/discord', passport.authenticate('discord'));
@@ -79,8 +87,6 @@ const startServer = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log("DB připojena.");
         app.listen(10000, () => console.log("Server běží na portu 10000"));
-    } catch (err) { 
-        console.error("Chyba DB:", err); 
-    }
+    } catch (err) { console.error("Chyba DB:", err); }
 };
 startServer();
