@@ -10,12 +10,12 @@ const path = require('path');
 const app = express();
 const bot = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 
-// --- KONFIGURACE ---
-const ADMIN_IDS = ["781859398183944192"]; // SEM VLOŽ SVOJE DISCORD ID
+// --- 1. KONFIGURACE A PROSTŘEDÍ ---
+const ADMIN_IDS = ["TVOJE_DISCORD_ID"]; // ZDE VLOŽ SVÉ ID
 mongoose.connect(process.env.MONGO_URI);
 bot.login(process.env.DISCORD_BOT_TOKEN);
 
-// --- SCHÉMATA ---
+// --- 2. DATABÁZOVÁ SCHÉMATA ---
 const User = mongoose.model('User', new mongoose.Schema({ 
     discordId: { type: String, unique: true },
     icName: String,
@@ -24,16 +24,31 @@ const User = mongoose.model('User', new mongoose.Schema({
 }));
 
 const Application = mongoose.model('Application', new mongoose.Schema({
-    userId: String, discordTag: String, icName: String, status: { type: String, default: 'pending' }, data: Object
+    userId: String, 
+    discordTag: String, 
+    icName: String, 
+    status: { type: String, default: 'pending' }, 
+    data: Object
 }));
 
-// --- MIDDLEWARE ---
+// --- 3. MIDDLEWARE ---
 app.use(express.urlencoded({ extended: true }));
-app.use(session({ secret: 'lssd-secret', resave: false, saveUninitialized: false }));
+app.use(express.json());
+app.use(session({ 
+    secret: 'lssd-secret-key-2026', 
+    resave: false, 
+    saveUninitialized: false 
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 
-// --- DISCORD STRATEGIE ---
+// --- 4. PASSPORT DISCORD STRATEGIE ---
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
+    const user = await User.findById(id);
+    done(null, user);
+});
+
 passport.use(new DiscordStrategy({
     clientID: process.env.DISCORD_CLIENT_ID,
     clientSecret: process.env.DISCORD_CLIENT_SECRET,
@@ -45,10 +60,9 @@ passport.use(new DiscordStrategy({
     return done(null, user);
 }));
 
-passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser(async (id, done) => done(null, await User.findById(id)));
+// --- 5. API A LOGIKA ---
 
-// --- CESTY ---
+// Autentizační brána
 app.get('/auth/discord', passport.authenticate('discord'));
 app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedirect: '/' }), (req, res) => {
     res.redirect(req.user.approved ? '/dashboard' : '/prihlaska');
@@ -56,32 +70,42 @@ app.get('/auth/discord/callback', passport.authenticate('discord', { failureRedi
 
 // Registrace hesla pro hru (po schválení)
 app.post('/register-game-account', async (req, res) => {
-    if (!req.isAuthenticated()) return res.status(401).send("Přihlas se!");
-    const { icName, password } = req.body;
-    const hash = await bcrypt.hash(password, 10);
-    await User.findByIdAndUpdate(req.user.id, { icName, password: hash });
-    res.send("<h1>Účet vytvořen!</h1>");
-});
-
-// Admin schválení s odesláním PM
-app.post('/api/admin/approve/:id', async (req, res) => {
-    if (!ADMIN_IDS.includes(req.user.discordId)) return res.status(403).send("Jen pro adminy!");
-    const app = await Application.findById(req.params.id);
-    
-    // Odeslání PM přes Discord bota
+    if (!req.isAuthenticated()) return res.status(401).send("Neautorizováno");
     try {
-        const user = await bot.users.fetch(app.userId);
-        await user.send(`Gratuluji, tvoje přihláška byla schválena. Nyní se přihlas na webu a nastav si heslo.`);
-    } catch (e) { console.error(e); }
-    
-    app.status = 'approved';
-    await app.save();
-    res.json({ success: true });
+        const hash = await bcrypt.hash(req.body.password, 10);
+        await User.findByIdAndUpdate(req.user.id, { icName: req.body.icName, password: hash, approved: true });
+        res.send("<h1>Registrace dokončena!</h1><p>Nyní se můžete přihlásit do hry.</p>");
+    } catch (err) { res.status(500).send("Chyba při registraci"); }
 });
 
-// Servírování souborů
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
-app.get('/prihlaska', (req, res) => res.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
-app.get('/dashboard', (req, res) => (req.isAuthenticated() && ADMIN_IDS.includes(req.user.discordId)) ? res.sendFile(path.join(__dirname, 'dashboard.html')) : res.redirect('/'));
+// Schvalování přihlášek s PM notifikací
+app.post('/api/admin/approve/:id', async (req, res) => {
+    if (!req.isAuthenticated() || !ADMIN_IDS.includes(req.user.discordId)) return res.status(403).send("Přístup odepřen!");
+    
+    try {
+        const appData = await Application.findById(req.params.id);
+        const user = await bot.users.fetch(appData.userId);
+        await user.send(`Gratulujeme, tvoje přihláška k LSSD byla schválena! Nyní se přihlas na webu a dokonči registraci.`);
+        
+        appData.status = 'approved';
+        await appData.save();
+        res.json({ success: true });
+    } catch (e) { res.status(500).send("Chyba při schvalování"); }
+});
 
-app.listen(10000);
+// --- 6. STATICKÉ STRÁNKY ---
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+app.get('/prihlaska', (req, res) => req.isAuthenticated() ? res.sendFile(path.join(__dirname, 'prihlaska.html')) : res.redirect('/'));
+app.get('/dashboard', (req, res) => {
+    if (req.isAuthenticated() && ADMIN_IDS.includes(req.user.discordId)) {
+        res.sendFile(path.join(__dirname, 'dashboard.html'));
+    } else {
+        res.redirect('/');
+    }
+});
+app.get('/logout', (req, res) => { req.logout(() => res.redirect('/')); });
+
+// --- 7. START SERVERU ---
+app.listen(process.env.PORT || 10000, () => {
+    console.log('Server LSSD 1.0 běží na portu 10000.');
+});
