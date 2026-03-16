@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <title>LSSD | Náborový formulář</title>
+    <style>
+        body { background: #121212; color: white; font-family: 'Segoe UI', sans-serif; display: flex; justify-content: center; padding: 40px; }
+        .form-container { background: #1e1e1e; padding: 30px; border-radius: 15px; width: 100%; max-width: 600px; border-top: 5px solid #f1c40f; }
+        .step { display: none; }
+        .step.active { display: block; }
+        h2 { color: #f1c40f; margin-bottom: 20px; }
+        input, textarea, select { width: 100%; padding: 12px; margin: 10px 0; background: #2a2a2a; border: 1px solid #444; color: white; border-radius: 5px; box-sizing: border-box; }
+        button { background: #f1c40f; color: black; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-prev { background: #444; color: white; margin-right: 10px; }
+    </style>
+</head>
+<body>
+
+<div class="form-container">
+    <form action="/submit-application" method="POST">
+        <div class="step active" id="step1">
+            <h2>1. Osobní informace OOC</h2>
+            <input type="text" name="oocName" placeholder="Křestní jméno *" required>
+            <input type="number" name="age" placeholder="Věk *" required>
+            <textarea name="availability" placeholder="Dostupnost (dny v týdnu a časy) *" required></textarea>
+            <button type="button" onclick="changeStep(2)">Další strana</button>
+        </div>
+
+        <div class="step" id="step2">
+            <h2>2. Herní zkušenosti</h2>
+            <label>Zkušenosti s FiveM *</label>
+            <select name="fivemExp" required>
+                <option value="Začátečník">Začátečník (0-6 měsíců)</option>
+                <option value="Pokročilý">Pokročilý (6 měsíců - 2 roky)</option>
+                <option value="Zkušený">Zkušený (2+ roky)</option>
+                <option value="Expert">Expert (5+ let)</option>
+            </select>
+            <input type="text" name="prevServers" placeholder="Předchozí servery">
+            <label>Zkušenosti s roleplayem *</label>
+            <select name="rpExp" required>
+                <option value="Žádné">Žádné zkušenosti</option>
+                <option value="Základní">Základní</option>
+                <option value="Dobré">Dobré</option>
+                <option value="Výborné">Výborné</option>
+            </select>
+            <textarea name="reason" placeholder="Proč chcete vstoupit do LSSD? *" required></textarea>
+            <button type="button" class="btn-prev" onclick="changeStep(1)">Zpět</button>
+            <button type="button" onclick="changeStep(3)">Další strana</button>
+        </div>
+
+        <div class="step" id="step3">
+            <h2>3. Roleplay pozadí</h2>
+            <textarea name="conflicts" placeholder="Jak řešíte konflikty v RP? *" required></textarea>
+            <button type="button" class="btn-prev" onclick="changeStep(2)">Zpět</button>
+            <button type="button" onclick="changeStep(4)">Další strana</button>
+        </div>
+
+        <div class="step" id="step4">
+            <h2>4. Detaily postavy</h2>
+            <input type="text" name="icName" placeholder="Jméno postavy *" required>
+            <input type="number" name="icAge" placeholder="Věk postavy *" required>
+            <textarea name="story" placeholder="Životopis (max 1000 znaků) *" maxlength="1000" required></textarea>
+            <button type="button" class="btn-prev" onclick="changeStep(3)">Zpět</button>
+            <button type="submit">ODESLAT FORMULÁŘ</button>
+        </div>
+    </form>
+</div>
+
+<script>
+    function changeStep(s) {
+        document.querySelectorAll('.step').forEach(step => step.classList.remove('active'));
+        document.getElementById('step' + s).classList.add('active');
+    }
+</script>
+</body>
+</html>
